@@ -13,19 +13,46 @@ if ($metodo == "POST") {
 
     $dados = json_decode($json, true);
 
-    $sql = "INSERT INTO reservas (usuario_id, quarto_id, data_entrada, data_saida, valor_total) VALUES (?, ?, ?, ?, ?)";
+    // Verifica se o quarto já possui reserva nas datas escolhidas
+    $sql = "SELECT * FROM reservas
+            WHERE quarto_id = ?
+            AND data_entrada < ?
+            AND data_saida > ?";
 
     $comando = $pdo->prepare($sql);
 
     $comando->execute([
-        $dados["usuario_id"],
         $dados["quarto_id"],
-        $dados["data_entrada"],
         $dados["data_saida"],
-        $dados["valor_total"]
+        $dados["data_entrada"]
     ]);
 
-    echo json_encode(["Mensagem" => "Reserva cadastrada com sucesso!"]);
+    $reservas = $comando->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($reservas) > 0) {
+
+        echo json_encode([
+            "Mensagem" => "Este quarto já está reservado nessas datas!"
+        ]);
+
+    } else {
+
+        $sql = "INSERT INTO reservas (usuario_id, quarto_id, data_entrada, data_saida, valor_total) VALUES (?, ?, ?, ?, ?)";
+
+        $comando = $pdo->prepare($sql);
+
+        $comando->execute([
+            $dados["usuario_id"],
+            $dados["quarto_id"],
+            $dados["data_entrada"],
+            $dados["data_saida"],
+            $dados["valor_total"]
+        ]);
+
+        echo json_encode([
+            "Mensagem" => "Reserva cadastrada com sucesso!"
+        ]);
+    }
 };
 
 if ($metodo == "GET") {
@@ -45,22 +72,49 @@ if ($metodo == "PUT") {
 
     $dados = json_decode($json, true);
 
-    $sql = "UPDATE reservas SET usuario_id=?, quarto_id=?, data_entrada=?, data_saida=?, valor_total=? WHERE id=?";
+    // Verifica se existe outra reserva nas mesmas datas
+    $sql = "SELECT * FROM reservas
+            WHERE quarto_id = ?
+            AND data_entrada < ?
+            AND data_saida > ?
+            AND id != ?";
 
     $comando = $pdo->prepare($sql);
 
     $comando->execute([
-        $dados["usuario_id"],
         $dados["quarto_id"],
-        $dados["data_entrada"],
         $dados["data_saida"],
-        $dados["valor_total"],
+        $dados["data_entrada"],
         $dados["id"]
     ]);
 
-    echo json_encode([
-        "Mensagem" => "Reserva atualizada com sucesso!"
-    ]);
+    $reservas = $comando->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($reservas) > 0) {
+
+        echo json_encode([
+            "Mensagem" => "Este quarto já está reservado nessas datas!"
+        ]);
+
+    } else {
+
+        $sql = "UPDATE reservas SET usuario_id=?, quarto_id=?, data_entrada=?, data_saida=?, valor_total=? WHERE id=?";
+
+        $comando = $pdo->prepare($sql);
+
+        $comando->execute([
+            $dados["usuario_id"],
+            $dados["quarto_id"],
+            $dados["data_entrada"],
+            $dados["data_saida"],
+            $dados["valor_total"],
+            $dados["id"]
+        ]);
+
+        echo json_encode([
+            "Mensagem" => "Reserva atualizada com sucesso!"
+        ]);
+    }
 };
 
 if ($metodo == "DELETE") {
